@@ -37,9 +37,11 @@ const pick = (o, cols) => Object.fromEntries(cols.filter(c => o[c] !== undefined
 const cleanText = (v, max = 120) => typeof v === 'string' && v.trim().length > 0 && v.trim().length <= max;
 const normalizeEmail = v => typeof v === 'string' ? v.trim().toLowerCase() : '';
 const validEmail = v => v.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-const codeValid = v => typeof v === 'string' && /^\d{8}$/.test(v)
-  && !/^(\d)\1{7}$/.test(v)
-  && !['01234567', '12345678', '87654321', '76543210'].includes(v);
+const codeValid = v =>
+  typeof v === 'string' &&
+  v.length >= 1 &&
+  v.length <= 128 &&
+  v.trim() === v;
 const notify = async text => ok(db.from('notifications').insert({ text }));
 const notifySafely = async text => { try { await notify(text); return true; } catch (e) { console.error('Notification non enregistrée:', e.message); return false; } };
 const app = express();

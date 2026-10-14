@@ -2,7 +2,9 @@
   "name": "ligue-championnat",
   "version": "2.1.1",
   "private": true,
-  "engines": { "node": ">=20" },
+  "engines": {
+  "node": "22.x"
+},
   "scripts": {
     "dev": "node --env-file=.env api/index.js",
     "start": "node api/index.js",

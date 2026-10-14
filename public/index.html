@@ -162,7 +162,64 @@ $('#bell').onclick=()=>{const n=$('#nt');n.style.display=n.style.display==='bloc
 let reg=false;const mode=r=>{reg=r;$('#an').hidden=!r;$('#an').required=r;$('#aconfirm').hidden=!r;$('#aconfirm').required=r;$('#acode').autocomplete=r?'new-password':'current-password';$('#acode').placeholder=r?'Code personnel (8 chiffres)':'Code personnel / mot de passe';$('#acode').inputMode=r?'numeric':'text';$('#acode').pattern=r?'[0-9]{8}':'';$('#acode').minLength=r?8:1;$('#acode').maxLength=r?8:128;$('#authhint').textContent=r?'Choisissez un code secret de 8 chiffres. Aucun e-mail de confirmation ne sera envoyé.':'Pour les anciens comptes, utilisez votre ancien mot de passe. Pour les nouveaux comptes, utilisez le code de 8 chiffres.';$('#ae').textContent='';$('#at').textContent=r?'Créer un compte':'Connexion';$('#as').textContent=r?'Créer mon compte':'Se connecter';$('#sw').textContent=r?'J’ai déjà un compte':'Créer un compte'};
 const open=r=>{mode(r);$('#dlg').showModal()};$('#sw').onclick=()=>mode(!reg);$('#su').onclick=$('#su2').onclick=$('#su3').onclick=()=>open(true);
 $('#lo').onclick=()=>S.user?out():open(false);
-$('#af').onsubmit=async e=>{e.preventDefault();try{const r=await api(reg?'register':'login',{method:'POST',body:Object.fromEntries(new FormData(e.target))});
- S.user=r.user;S.token=r.token;localStorage.u=JSON.stringify(r.user);localStorage.t=r.token;$('#dlg').close();toast('Bienvenue '+r.user.name);auth()}catch(x){$('#ae').textContent=x.message}};
+
+$('#af').onsubmit = async e => {
+  e.preventDefault();
+
+  const button = $('#as');
+  button.disabled = true;
+  $('#ae').textContent = '';
+
+  try {
+    const form = Object.fromEntries(new FormData(e.target));
+    const endpoint = reg ? 'register' : 'login';
+
+    // Vérifier les champs envoyés au serveur.
+    const email = String(form.email || '').trim();
+    const password = String(form.password || '');
+
+    if (!email || !password) {
+      throw new Error('Saisissez votre adresse e-mail et votre code personnel.');
+    }
+
+    if (reg && password !== String(form.confirmCode || '')) {
+      throw new Error('Les deux codes personnels ne correspondent pas.');
+    }
+
+    // Envoyer uniquement les champs attendus par l'API.
+    const body = reg
+      ? { name: String(form.name || '').trim(), email, password, confirmCode: form.confirmCode }
+      : { email, password };
+
+    const r = await api(endpoint, {
+      method: 'POST',
+      body
+    });
+
+    // Ne jamais annoncer une connexion sans session valide.
+    if (!r || !r.token || !r.user) {
+      throw new Error('Le serveur n’a pas retourné de session valide. Vérifiez la configuration de l’API.');
+    }
+
+    S.user = r.user;
+    S.token = r.token;
+
+    localStorage.setItem('u', JSON.stringify(r.user));
+    localStorage.setItem('t', r.token);
+
+    $('#dlg').close();
+    auth();
+    toast('Bienvenue ' + (r.user.name || r.user.email || ''));
+
+    // Recharger les données avec la nouvelle session.
+    load().catch(err => toast('Connexion réussie, mais chargement incomplet : ' + err.message));
+
+  } catch (err) {
+    $('#ae').textContent = err.message || 'Échec de la connexion.';
+  } finally {
+    button.disabled = false;
+  }
+};
+
 load().catch(x=>{$('#st').innerHTML='<div class="em">Impossible de charger les données : '+esc(x.message)+'</div>'});setInterval(()=>load().catch(()=>{}),30000);
 </script></body></html>
